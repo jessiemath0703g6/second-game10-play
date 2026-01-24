@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Jessie Math - 分數與小數的四則運算實驗室</title>
+
+    <!-- ✅ 快取連結預覽（請放在 <head> 裡） -->
+    <meta name="description" content="© 2025–2026 Jessie Math 捷析老師. All rights reserved.">
+
+    <!-- ✅ LINE / FB 預覽用 -->
+    <meta property="og:title" content="Jessie Math - 分數與小數的四則運算實驗室">
+    <meta property="og:description" content="© 2025–2026 Jessie Math 捷析老師. All rights reserved.">
+    <meta property="og:type" content="website">
+
+    <!-- ✅ 預覽圖片-->
+    <meta property="og:image" content="g6-u10-2.png">
+    <meta property="og:image:width" content="1024">
+    <meta property="og:image:height" content="1536">
+    <meta property="og:image:alt" content="Jessie Math 遊戲封面">
+
+    <!-- ✅ 有些平台會參考 -->
+    <link rel="image_src" href="g6-u10-2.png">
+
+    <!-- ✅ Twitter / X（可用同一張圖） -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Jessie Math - 分數與小數的四則運算實驗室">
+    <meta name="twitter:description" content="© 2025–2026 Jessie Math 捷析老師. All rights reserved.">
+    <meta name="twitter:image" content="g6-u10-2.png">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-yellow: #FFD700;
+            --science-blue: #00d2ff;
+            --bg-dark: #0f172a;
+            --glass: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+            margin: 0; background-color: var(--bg-dark); color: white;
+            display: flex; flex-direction: column; min-height: 100vh; overflow-x: hidden;
+        }
+
+        /* ✅ 回饋 Toast（新增） */
+        .toast {
+            position: fixed;
+            left: 50%;
+            bottom: 18px;
+            transform: translateX(-50%) translateY(20px);
+            background: rgba(15, 23, 42, 0.72);
+            border: 1px solid rgba(255,255,255,0.14);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 12px 16px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 3000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .25s ease, transform .25s ease;
+            max-width: min(680px, calc(100vw - 24px));
+            box-shadow: 0 18px 40px rgba(0,0,0,0.35);
+        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .toast .dot {
+            width: 10px; height: 10px; border-radius: 50%;
+            background: var(--primary-yellow);
+            box-shadow: 0 0 0 4px rgba(255,215,0,0.12);
+            flex: 0 0 auto;
+        }
+        .toast.good .dot { background: #4ecca3; box-shadow: 0 0 0 4px rgba(78,204,163,0.14); }
+        .toast.bad .dot { background: #f43f5e; box-shadow: 0 0 0 4px rgba(244,63,94,0.14); }
+        .toast .msg {
+            font-size: 14px;
+            color: #e5e7eb;
+            line-height: 1.45;
+            word-break: break-word;
+        }
+        .pulse-good { animation: pulseGood .45s ease; }
+        .shake-bad { animation: shakeBad .35s ease; }
+        @keyframes pulseGood {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+        @keyframes shakeBad {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            50% { transform: translateX(6px); }
+            75% { transform: translateX(-4px); }
+            100% { transform: translateX(0); }
+        }
+
+        /* --- 登入與難度選擇頁 --- */
+        #start-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-dark); z-index: 1000; display: flex;
+            flex-direction: column; align-items: center; justify-content: center;
+            padding: 18px;
+            box-sizing: border-box;
+        }
+        .start-card {
+            background: rgba(30, 41, 59, 0.95); padding: 40px; border-radius: 20px;
+            border: 2px solid var(--primary-yellow); text-align: center; width: min(550px, 100%);
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            box-sizing: border-box;
+        }
+        .start-card input {
+            padding: 12px; width: min(420px, 86%); font-size: 18px; border-radius: 8px; border: none; margin: 20px 0; text-align: center;
+        }
+        .instruction { font-size: 14px; color: #cbd5e1; line-height: 1.6; margin-bottom: 20px; text-align: left; }
+        .mode-btns { display: flex; gap: 10px; justify-content: center; margin-top: 20px; flex-wrap: wrap; }
+        .mode-btn { padding: 10px 20px; border-radius: 10px; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .mode-btn:hover { transform: translateY(-3px); filter: brightness(1.1); }
+
+        /* --- 排行榜 Modal --- */
+        #leaderboard-modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); z-index: 2000; align-items: center; justify-content: center;
+            padding: 18px;
+            box-sizing: border-box;
+        }
+        .rank-item {
+            display: flex; justify-content: space-between; padding: 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 18px;
+        }
+        .rank-1 { color: #ffd700; font-weight: bold; background: rgba(255, 215, 0, 0.1); }
+        .rank-2 { color: #e2e2e2; }
+        .rank-3 { color: #cd7f32; }
+
+        /* --- Hero 區 (品牌化設計) --- */
+        .hero {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 25px; background: #fff;
+            border-bottom: 1px solid #eee;
+            gap: 12px;
+        }
+        .hero-left { display: flex; align-items: center; }
+        .hero-logo {
+            width: 50px; height: 50px;
+            border: 3px solid #f29200;
+            border-radius: 50%; margin-right: 12px;
+            display: flex; justify-content: center; align-items: center;
+            overflow: hidden; background: transparent;
+            flex: 0 0 auto;
+        }
+        .hero-logo img { width: 85%; height: 85%; object-fit: contain; }
+        .brand-name { font-size: 32px; font-weight: 800; color: #2c3e50; font-family: 'Arial Black', sans-serif; }
+
+        .hero-right { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+        .nav-btn {
+            background: white; color: #333; text-decoration: none;
+            padding: 8px 18px; border-radius: 25px; font-size: 16px; font-weight: bold;
+            border: 1px solid #ddd; display: flex; align-items: center; gap: 5px;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+        .nav-btn i { color: #4a90e2; }
+        .nav-btn.special { border-color: #7d66d9; color: #7d66d9; background: #f8f7ff; }
+        .nav-btn.special i { color: #7d66d9; }
+        .nav-btn:hover { background: #f0f0f0; transform: translateY(-2px); }
+
+        /* --- 遊戲布局 --- */
+        .game-status {
+            display: flex; justify-content: space-around; background: #1e293b;
+            padding: 8px; font-size: 18px; border-bottom: 1px solid #334155;
+            gap: 10px;
+            flex-wrap: wrap; /* ✅ 更好的 RWD */
+        }
+
+        /* ✅ 更好的 RWD：桌機雙欄、平板比例、手機單欄 */
+        .lab-wrapper {
+            display: grid;
+            grid-template-columns: 1fr minmax(280px, 340px);
+            gap: 20px;
+            padding: 20px;
+            flex-grow: 1;
+            overflow: hidden;
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+            box-sizing: border-box;
+        }
+
+        .main-lab { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+        .target-display {
+            background: var(--glass); border: 2px solid var(--science-blue);
+            padding: 10px; border-radius: 15px; text-align: center;
+            transition: transform .25s ease, box-shadow .25s ease;
+        }
+        .target-num { font-size: 46px; color: var(--science-blue); font-weight: bold; }
+
+        .drop-zone {
+            height: 110px; background: rgba(255,255,255,0.05);
+            border: 3px dashed var(--science-blue); border-radius: 20px;
+            display: flex; align-items: center; justify-content: center;
+            gap: 8px; padding: 10px; overflow-x: auto;
+            scroll-behavior: smooth;
+        }
+
+        .card-shelf {
+            display: flex; flex-wrap: wrap; gap: 8px; padding: 12px;
+            background: rgba(0,0,0,0.3); border-radius: 15px;
+            justify-content: center; min-height: 180px; overflow-y: auto;
+        }
+
+        .reagent {
+            background: white; color: #333; padding: 5px;
+            border-radius: 8px; cursor: grab; user-select: none;
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; min-width: 48px; height: 65px;
+            font-weight: bold; box-shadow: 0 4px var(--science-blue);
+        }
+        .reagent.operator { background: var(--science-blue); color: white; border-radius: 50%; width: 48px; height: 48px; }
+
+        .fraction { display: flex; flex-direction: column; align-items: center; line-height: 1; }
+        .frac-line { border-top: 2px solid #333; width: 100%; margin: 2px 0; }
+
+        .lab-log {
+            background: #1e293b; border-left: 2px solid #334155;
+            padding: 15px; display: flex; flex-direction: column; overflow: hidden;
+            min-width: 0;
+            border-radius: 14px;
+        }
+        .log-content {
+            flex-grow: 1; overflow-y: auto; font-size: 13px; color: #94a3b8;
+            font-family: monospace; border: 1px solid #334155; padding: 10px;
+            background: #0f172a; display: flex; flex-direction: column; gap: 5px;
+            border-radius: 12px;
+        }
+        .log-item { padding-bottom: 5px; border-bottom: 1px solid #1e293b; }
+        .current-result { font-size: 24px; color: var(--primary-yellow); text-align: center; padding: 10px; }
+
+        .action-btn {
+            background: var(--primary-yellow); border: none; padding: 12px;
+            border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 5px;
+        }
+
+        /* --- Footer 樣式 --- */
+        footer {
+            padding: 20px;
+            background: var(--bg-dark);
+            display: flex;
+            justify-content: center;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        .footer-pill {
+            background: rgba(255,255,255,0.05);
+            padding: 15px 30px;
+            border-radius: 50px;
+            display: flex;
+            align-items: center;
+            gap: 40px;
+            border: 1px solid rgba(255,255,255,0.1);
+            max-width: 1200px;
+            width: 100%;
+            justify-content: space-between;
+            box-sizing: border-box;
+        }
+        .footer-left, .footer-right { display: flex; align-items: center; gap: 10px; }
+        .footer-dot { width: 8px; height: 8px; background: var(--primary-yellow); border-radius: 50%; }
+        .footer-copy { font-size: 14px; color: #94a3b8; }
+        .footer-icon { color: var(--primary-yellow); font-size: 18px; }
+        .footer-tagline { font-size: 14px; color: #cbd5e1; font-weight: 500; }
+
+        /* ✅ 平板 */
+        @media (max-width: 980px) {
+            .lab-wrapper { grid-template-columns: 1fr minmax(260px, 320px); }
+            .brand-name { font-size: 28px; }
+        }
+
+        /* ✅ 手機 */
+        @media (max-width: 768px) {
+            .hero { flex-direction: column; align-items: flex-start; }
+            .hero-right { width: 100%; justify-content: flex-start; }
+            .lab-wrapper { grid-template-columns: 1fr; overflow-y: auto; padding: 14px; }
+            .footer-pill { flex-direction: column; gap: 10px; border-radius: 20px; align-items: flex-start; }
+            .drop-zone { height: 120px; }
+            .target-num { font-size: 40px; }
+        }
+
+        /* ✅ 超小螢幕 */
+        @media (max-width: 390px) {
+            .nav-btn { padding: 8px 14px; font-size: 15px; }
+            .brand-name { font-size: 26px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ✅ 回饋 Toast（新增） -->
+<div id="toast" class="toast" aria-live="polite" aria-atomic="true">
+    <div class="dot" aria-hidden="true"></div>
+    <div class="msg" id="toast-msg"></div>
+</div>
+
+<div id="leaderboard-modal">
+    <div class="start-card" style="width: 90%; max-width: 400px;">
+        <h2 style="color:var(--primary-yellow)"><i class="fas fa-medal"></i> 實驗室榮譽榜</h2>
+        <div id="leaderboard-list" style="text-align: left; margin: 20px 0; min-height: 100px;"></div>
+        <button class="action-btn" onclick="closeLeaderboard()">返回研究室</button>
+    </div>
+</div>
+
+<div id="start-screen">
+    <div class="start-card">
+        <div class="hero-logo" style="margin: 0 auto 10px; background: white;"><img src="JESSIEMATH-Q.png" alt="Jessie"></div>
+        <h2 style="color:var(--primary-yellow)">Jessie Math：四則運算實驗室</h2>
+        <div class="instruction">
+            <p style="text-align:center; font-weight:bold; color:var(--primary-yellow)">【研究員實驗指南】</p>
+            1. <strong>無限試劑：</strong>數字與符號皆可重複拖拉使用。<br>
+            2. <strong>調配目標：</strong>組合算式達成「目標數值」即過關。<br>
+            3. <strong>自動更新：</strong>成功後自動換題，挑戰最高積分。<br>
+            4. <strong>點擊移除：</strong>點擊上方燒瓶內的卡片可快速撤回。
+        </div>
+        <input type="text" id="player-name" placeholder="請輸入研究員姓名">
+        <div class="mode-btns">
+            <button class="mode-btn" style="background:#4ecca3" onclick="startGame(180, '基礎')">基礎</button>
+            <button class="mode-btn" style="background:#fca311" onclick="startGame(120, '進階')">進階</button>
+            <button class="mode-btn" style="background:#e94560" onclick="startGame(60, '惡魔')">惡魔</button>
+        </div>
+        <button class="action-btn" style="background: #6366f1; color: white; margin-top: 20px;" onclick="showLeaderboard()">
+            <i class="fas fa-trophy"></i> 查看排行榜
+        </button>
+    </div>
+</div>
+
+<div class="hero">
+    <div class="hero-left">
+        <div class="hero-logo">
+            <img src="JESSIEMATH-Q.png" alt="Jessie Logo">
+        </div>
+        <div class="brand-name">Jessie Math</div>
+    </div>
+    <div class="hero-right">
+        <a href="https://jessiemath0703-chu.github.io/website2/" class="nav-btn">
+            <i class="fas fa-home"></i> 首頁
+        </a>
+        <a href="https://jessiemath0703-chu.github.io/Game-Lobby/" class="nav-btn">
+            <i class="fas fa-gamepad"></i> 遊戲大廳
+        </a>
+        <a href="https://jessiemath0703-chu.github.io/Game-Lobby/#g6-10" class="nav-btn special">
+            <i class="fas fa-undo"></i> 六年級分數與小數的四則運算
+        </a>
+    </div>
+</div>
+
+<div class="game-status">
+    <div>👤 研究員：<span id="display-name">---</span></div>
+    <div>🕒 時間：<span id="timer">00:00</span></div>
+    <div>⭐ 分數：<span id="score">0</span></div>
+</div>
+
+<div class="lab-wrapper">
+    <div class="main-lab">
+        <div class="target-display" id="target-box">
+            <div>🧪 實驗目標數值</div>
+            <div class="target-num" id="target-val">---</div>
+        </div>
+
+        <div class="drop-zone" id="drop-zone" ondrop="dropToZone(event)" ondragover="allowDrop(event)">
+            <div id="hint-text" style="color:#666;">拖入試劑開始調配...</div>
+        </div>
+
+        <div class="card-shelf" id="shelf" ondrop="dropToShelf(event)" ondragover="allowDrop(event)"></div>
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="action-btn" style="background:#64748b; color:white; flex:1 1 160px;" onclick="togglePause()">暫停</button>
+            <button class="action-btn" style="background:#4ecca3; flex:1 1 160px;" onclick="checkAnswer()">啟動反應</button>
+            <button class="action-btn" style="background:#f43f5e; color:white; flex:1 1 160px;" onclick="resetCurrent()">全管清空</button>
+        </div>
+    </div>
+
+    <div class="lab-log" id="log-box">
+        <h3>📝 實驗紀錄紀錄</h3>
+        <div class="log-content" id="log-content"></div>
+        <div class="current-result">當前結果: <span id="calc-res">0</span></div>
+    </div>
+</div>
+
+<footer>
+    <div class="footer-pill">
+        <div class="footer-left">
+            <div class="footer-dot" aria-hidden="true"></div>
+            <div class="footer-copy">© 2025–2026 Jessie Math 捷析老師. All rights reserved.</div>
+        </div>
+        <div class="footer-right">
+            <div class="footer-icon" aria-hidden="true"><i class="fas fa-compass"></i></div>
+            <div class="footer-tagline">數學不迷路，Jessie 帶你走向理解。</div>
+        </div>
+    </div>
+</footer>
+
+<script>
+    let currentFormula = [];
+    let score = 0;
+    let timeLeft = 0;
+    let timerInterval;
+    let isPaused = false;
+    let playerName = "";
+
+    // ✅ 本題正確解（新增）
+    let currentSolution = { target: null, pretty: "", evalExpr: "" };
+
+    const numPool = [
+        { val: 0.5, d: '0.5' }, { val: 0.25, d: {n:1, d:4} }, { val: 0.75, d: {n:3, d:4} },
+        { val: 0.2, d: {n:1, d:5} }, { val: 0.4, d: '0.4' }, { val: 0.6, d: {n:3, d:5} },
+        { val: 0.8, d: '0.8' }, { val: 0.1, d: '0.1' }, { val: 0.125, d: {n:1, d:8} },
+        { val: 1.5, d: '1.5' }, { val: 2, d: '2' }, { val: 1.25, d: '1.25' },
+        { val: 0.3, d: '0.3' }, { val: 0.375, d: {n:3, d:8} }, { val: 0.9, d: '0.9' },
+        { val: 2.5, d: '2.5' }, { val: 0.625, d: {n:5, d:8} }, { val: 1.2, d: '1.2' }
+    ];
+
+    const opPool = [
+        { type: 'op', val: '+', d: '+' }, { type: 'op', val: '-', d: '-' },
+        { type: 'op', val: '*', d: '×' }, { type: 'op', val: '/', d: '÷' },
+        { type: 'op', val: '(', d: '(' }, { type: 'op', val: ')' , d: ')' }
+    ];
+
+    function showToast(message, type = "good") {
+        const toast = document.getElementById('toast');
+        const msg = document.getElementById('toast-msg');
+        msg.innerHTML = message;
+
+        toast.classList.remove('good', 'bad', 'show');
+        toast.classList.add(type === "bad" ? 'bad' : 'good');
+
+        void toast.offsetWidth;
+        toast.classList.add('show');
+
+        clearTimeout(showToast._t);
+        showToast._t = setTimeout(() => toast.classList.remove('show'), 2600);
+    }
+
+    function startGame(seconds, mode) {
+        playerName = document.getElementById('player-name').value;
+        if(!playerName) return alert("請輸入研究員姓名！");
+        timeLeft = seconds;
+        document.getElementById('display-name').innerText = playerName;
+        document.getElementById('start-screen').style.display = 'none';
+        initGame(true);
+        showToast(`🧪 ${playerName}，歡迎進入「${mode}」模式！開始調配吧。`, "good");
+    }
+
+    function initGame(isFirstStart = false) {
+        resetCurrent();
+        const logContent = document.getElementById('log-content');
+        logContent.innerHTML = `<div class="log-item">> ${isFirstStart ? '系統初始化...' : '啟動新階段題目...'}</div>`;
+
+        const shelfNums = [...numPool].sort(() => Math.random() - 0.5).slice(0, 12);
+        const combined = [...shelfNums, ...opPool].sort(() => Math.random() - 0.5);
+        renderShelf(combined);
+
+        generateNewTargetWithSolution(shelfNums);
+
+        if(isFirstStart) {
+            if(timerInterval) clearInterval(timerInterval);
+            startTimer();
+        }
+    }
+
+    function dispToText(d) {
+        return (typeof d === 'object') ? `${d.n}/${d.d}` : String(d);
+    }
+
+    function approxEqual(a, b, eps = 1e-6) {
+        return Number.isFinite(a) && Number.isFinite(b) && Math.abs(a - b) <= eps;
+    }
+
+    function safeDiv(a, b) { return Math.abs(b) < 1e-12 ? null : (a / b); }
+
+    function findSolutionForTarget(numObjs, target) {
+        const ops = [
+            {sym:"+", fn:(a,b)=>a+b},
+            {sym:"-", fn:(a,b)=>a-b},
+            {sym:"*", fn:(a,b)=>a*b},
+            {sym:"/", fn:(a,b)=>safeDiv(a,b)}
+        ];
+
+        for (let i=0;i<numObjs.length;i++){
+            for (let j=0;j<numObjs.length;j++){
+                if (i===j) continue;
+                const A = numObjs[i], B = numObjs[j];
+                for (const op of ops){
+                    const r = op.fn(A.val, B.val);
+                    if (r === null) continue;
+                    if (approxEqual(r, target)) {
+                        const pretty = `${A.txt} ${op.sym==="*"?"×":op.sym==="/"?"÷":op.sym} ${B.txt}`;
+                        const evalExpr = `(${A.val}${op.sym}${B.val})`;
+                        return { pretty, evalExpr };
+                    }
+                }
+            }
+        }
+
+        for (let i=0;i<numObjs.length;i++){
+            for (let j=0;j<numObjs.length;j++){
+                for (let k=0;k<numObjs.length;k++){
+                    if (i===j || j===k || i===k) continue;
+                    const A = numObjs[i], B = numObjs[j], C = numObjs[k];
+
+                    for (const op1 of ops){
+                        const r1 = op1.fn(A.val, B.val);
+                        if (r1 === null) continue;
+
+                        for (const op2 of ops){
+                            const r2 = op2.fn(r1, C.val);
+                            if (r2 !== null && approxEqual(r2, target)) {
+                                const p1 = `${A.txt} ${op1.sym==="*"?"×":op1.sym==="/"?"÷":op1.sym} ${B.txt}`;
+                                const pretty = `(${p1}) ${op2.sym==="*"?"×":op2.sym==="/"?"÷":op2.sym} ${C.txt}`;
+                                const evalExpr = `((${A.val}${op1.sym}${B.val})${op2.sym}${C.val})`;
+                                return { pretty, evalExpr };
+                            }
+                        }
+                    }
+
+                    for (const op1 of ops){
+                        const r1 = op1.fn(B.val, C.val);
+                        if (r1 === null) continue;
+
+                        for (const op2 of ops){
+                            const r2 = op2.fn(A.val, r1);
+                            if (r2 !== null && approxEqual(r2, target)) {
+                                const p1 = `${B.txt} ${op1.sym==="*"?"×":op1.sym==="/"?"÷":op1.sym} ${C.txt}`;
+                                const pretty = `${A.txt} ${op2.sym==="*"?"×":op2.sym==="/"?"÷":op2.sym} (${p1})`;
+                                const evalExpr = `(${A.val}${op2.sym}(${B.val}${op1.sym}${C.val}))`;
+                                return { pretty, evalExpr };
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    function generateNewTargetWithSolution(shelfNums) {
+        const numObjs = shelfNums.map(n => ({ val: n.val, txt: dispToText(n.d) }));
+
+        const possibleTargets = [1, 2, 0.5, 1.25, 1.5, 0.75, 2.25, 0.4, 0.8, 0.1, 1.1, 0.6, 2.5];
+
+        const currentVals = new Set(shelfNums.map(c => c.val));
+        const filtered = possibleTargets.filter(t => !currentVals.has(t));
+
+        let picked = null;
+        for (let tries = 0; tries < 60; tries++) {
+            const t = filtered[Math.floor(Math.random() * filtered.length)] ?? 1.1;
+            const sol = findSolutionForTarget(numObjs, t);
+            if (sol) { picked = { t, sol }; break; }
+        }
+
+        if (!picked) {
+            const results = [];
+            const ops = [
+                {sym:"+", fn:(a,b)=>a+b},
+                {sym:"-", fn:(a,b)=>a-b},
+                {sym:"*", fn:(a,b)=>a*b},
+                {sym:"/", fn:(a,b)=>safeDiv(a,b)}
+            ];
+
+            for (let i=0;i<numObjs.length;i++){
+                for (let j=0;j<numObjs.length;j++){
+                    if (i===j) continue;
+                    for (const op of ops){
+                        const r = op.fn(numObjs[i].val, numObjs[j].val);
+                        if (r === null) continue;
+                        if (!Number.isFinite(r)) continue;
+                        if (r < 0 || r > 5) continue;
+                        const pretty = `${numObjs[i].txt} ${op.sym==="*"?"×":op.sym==="/"?"÷":op.sym} ${numObjs[j].txt}`;
+                        const evalExpr = `(${numObjs[i].val}${op.sym}${numObjs[j].val})`;
+                        results.push({t: parseFloat(r.toFixed(3)), sol:{pretty, evalExpr}});
+                    }
+                }
+            }
+            const fallback = results[Math.floor(Math.random() * results.length)] || {t: 1.1, sol:{pretty:"0.5 + 0.6", evalExpr:"(0.5+0.6)"}};
+            picked = { t: fallback.t, sol: fallback.sol };
+        }
+
+        currentSolution.target = picked.t;
+        currentSolution.pretty = picked.sol.pretty;
+        currentSolution.evalExpr = picked.sol.evalExpr;
+
+        document.getElementById('target-val').innerText = picked.t;
+    }
+
+    function renderShelf(data) {
+        const shelf = document.getElementById('shelf');
+        shelf.innerHTML = '';
+        data.forEach((r, i) => {
+            const div = createReagentEl(r, `shelf-${i}-${Date.now()}`);
+            shelf.appendChild(div);
+        });
+    }
+
+    function createReagentEl(r, id) {
+        const div = document.createElement('div');
+        div.className = r.type === 'op' ? 'reagent operator' : 'reagent';
+        div.draggable = true;
+        div.id = id;
+        div.innerHTML = formatDisplay(r.d);
+        div.setAttribute('data-info', JSON.stringify({val: r.val, d: r.d, type: r.type}));
+
+        div.ondragstart = (e) => {
+            if(isPaused) return e.preventDefault();
+            e.dataTransfer.setData("info", e.target.getAttribute('data-info'));
+            e.dataTransfer.setData("sourceId", e.target.id);
+        };
+
+        div.onclick = () => { if(div.parentElement.id === 'drop-zone') removeReagent(div.id); };
+        return div;
+    }
+
+    function formatDisplay(disp) {
+        return typeof disp === 'object'
+            ? `<div class="fraction"><div>${disp.n}</div><div class="frac-line"></div><div>${disp.d}</div></div>`
+            : disp;
+    }
+
+    function allowDrop(e) { e.preventDefault(); }
+
+    function dropToZone(e) {
+        e.preventDefault();
+        const info = JSON.parse(e.dataTransfer.getData("info"));
+        document.getElementById('hint-text').style.display = 'none';
+        const newId = 'zone-' + Date.now() + Math.random();
+        const el = createReagentEl(info, newId);
+        document.getElementById('drop-zone').appendChild(el);
+        currentFormula.push({id: newId, val: info.val, d: info.d});
+        addLog(`添入 [${typeof info.d === 'object' ? info.d.n+'/'+info.d.d : info.d}]`);
+        calculate();
+    }
+
+    function removeReagent(id) {
+        const item = currentFormula.find(i => i.id === id);
+        if(item) addLog(`移除 [${typeof item.d === 'object' ? item.d.n+'/'+item.d.d : item.d}]`);
+        const el = document.getElementById(id);
+        if(el) el.remove();
+        currentFormula = currentFormula.filter(i => i.id !== id);
+        if(currentFormula.length === 0) document.getElementById('hint-text').style.display = 'block';
+        calculate();
+    }
+
+    function dropToShelf(e) {
+        e.preventDefault();
+        const sid = e.dataTransfer.getData("sourceId");
+        if(sid.startsWith('zone')) removeReagent(sid);
+    }
+
+    function addLog(msg) {
+        const log = document.getElementById('log-content');
+        const now = new Date();
+        const timeStr = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+        const div = document.createElement('div');
+        div.className = 'log-item';
+        const formulaStr = currentFormula.map(i => typeof i.d === 'object' ? i.d.n+'/'+i.d.d : i.d).join('');
+        div.innerText = `[${timeStr}] ${msg} | 當前算式: ${formulaStr || '---'}`;
+        log.appendChild(div);
+        log.scrollTop = log.scrollHeight;
+    }
+
+    function calculate() {
+        try {
+            let str = currentFormula.map(i => i.val).join('');
+            if(!str) return document.getElementById('calc-res').innerText = "0";
+            let res = eval(str);
+            document.getElementById('calc-res').innerText = Number.isFinite(res) ? parseFloat(res.toFixed(3)) : "---";
+            return res;
+        } catch(e) { document.getElementById('calc-res').innerText = "---"; }
+    }
+
+    function startTimer() {
+        timerInterval = setInterval(() => {
+            if(!isPaused) {
+                timeLeft--;
+                let m = Math.floor(timeLeft / 60).toString().padStart(2,'0');
+                let s = (timeLeft % 60).toString().padStart(2,'0');
+                document.getElementById('timer').innerText = `${m}:${s}`;
+                if(timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    saveScore(playerName, score);
+                    alert("實驗時間到！您的得分：" + score);
+                    location.reload();
+                }
+            }
+        }, 1000);
+    }
+
+    function togglePause() {
+        isPaused = !isPaused;
+        showToast(isPaused ? "⏸️ 實驗暫停" : "▶️ 繼續調配", "good");
+    }
+
+    function resetCurrent() {
+        document.getElementById('drop-zone').innerHTML = '<div id="hint-text" style="color:#666;">拖入試劑開始紀錄...</div>';
+        currentFormula = [];
+        calculate();
+    }
+
+    // ✅ 新增：判別後「不論正確/失敗」都自動進行下一題（你指定的兩點）
+    function goNextRound() {
+        // 小延遲讓使用者看到回饋
+        setTimeout(() => {
+            initGame(false);
+        }, 650);
+    }
+
+    function checkAnswer() {
+        let res = calculate();
+        let target = parseFloat(document.getElementById('target-val').innerText);
+
+        const targetBox = document.getElementById('target-box');
+        const logBox = document.getElementById('log-box');
+
+        if (Number.isFinite(res) && Math.abs(res - target) < 0.001) {
+            score += 100;
+            document.getElementById('score').innerText = score;
+
+            addLog("✅ 反應成功：目標達成");
+            showToast(`✨ 調配成功！+100 分　（本題答案之一：<b>${currentSolution.pretty}</b>）`, "good");
+
+            targetBox.classList.remove('shake-bad');
+            targetBox.classList.add('pulse-good');
+            setTimeout(() => targetBox.classList.remove('pulse-good'), 520);
+
+            // ✅ 正確：自動下一題
+            goNextRound();
+        } else {
+            addLog("❌ 反應錯誤：數值不穩");
+
+            const correctText = currentSolution.pretty
+                ? `正確算式之一：<b>${currentSolution.pretty}</b>`
+                : `正確答案：<b>${target}</b>`;
+
+            showToast(`❌ 數值不吻合！<span style="opacity:.85">（${correctText}）</span>`, "bad");
+
+            logBox.classList.remove('pulse-good');
+            logBox.classList.add('shake-bad');
+            setTimeout(() => logBox.classList.remove('shake-bad'), 420);
+
+            // ✅ 失敗：顯示正確算式後，自動下一題
+            goNextRound();
+        }
+    }
+
+    function saveScore(name, finalScore) {
+        let scores = JSON.parse(localStorage.getItem('jessieMath_scores') || '[]');
+        scores.push({ name: name, score: finalScore, date: new Date().toLocaleDateString() });
+        scores.sort((a, b) => b.score - a.score);
+        scores = scores.slice(0, 5);
+        localStorage.setItem('jessieMath_scores', JSON.stringify(scores));
+    }
+
+    function showLeaderboard() {
+        const modal = document.getElementById('leaderboard-modal');
+        const list = document.getElementById('leaderboard-list');
+        const scores = JSON.parse(localStorage.getItem('jessieMath_scores') || '[]');
+        modal.style.display = 'flex';
+
+        if (scores.length === 0) {
+            list.innerHTML = "<p style='text-align:center; color:#94a3b8;'>目前尚無研究紀錄</p>";
+            return;
+        }
+
+        const icons = ['🥇', '🥈', '🥉', '4th', '5th'];
+        list.innerHTML = scores.map((s, i) => `
+            <div class="rank-item ${i < 3 ? 'rank-' + (i + 1) : ''}">
+                <span>${icons[i]} ${s.name}</span>
+                <span>${s.score} 分</span>
+            </div>
+        `).join('');
+    }
+
+    function closeLeaderboard() {
+        document.getElementById('leaderboard-modal').style.display = 'none';
+    }
+</script>
+
+</body>
+</html>
+
