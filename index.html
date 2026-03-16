@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Jessie Math捷析 - 複雜能源轉換</title>
+
+    <meta name="description" content="© 2025–2026 捷析 Math 捷析老師. All rights reserved.">
+
+    <meta property="og:title" content="Jessie Math捷析 - 複雜能源轉換">
+    <meta property="og:description" content="© 2025–2026 Jessie Math 捷析老師. All rights reserved.">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="g6-u10-2.png">
+    <meta property="og:image:width" content="1024">
+    <meta property="og:image:height" content="1536">
+    <meta property="og:image:alt" content="Jessie Math 遊戲封面">
+
+    <link rel="image_src" href="g6-u10-2.png">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Jessie Math捷析 - 複雜能源轉換">
+    <meta name="twitter:description" content="© 2025–2026 Jessie Math 捷析老師. All rights reserved.">
+    <meta name="twitter:image" content="g6-u10-2.png">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <script src="https://unpkg.com/drag-drop-touch"></script>
+
+    <style>
+        :root {
+            /* 迷宮、沙塵、機械風格配色 */
+            --primary-yellow: #d97706; /* 偏沙塵的橘黃色 */
+            --science-blue: #78716c; /* 石塊灰 */
+            --bg-dark: #1c1917; /* 深邃的迷宮底色 */
+            --glass: rgba(0, 0, 0, 0.4);
+            --stone-border: #44403c;
+            --mech-accent: #b45309;
+        }
+
+        body {
+            font-family: 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+            margin: 0; 
+            /* ✅ 修改2: 背景圖片涵蓋整個畫面並錨定右上角 */
+            background-color: var(--bg-dark); 
+            background-image: url('jessie-logo-play.jpg');
+            background-size: cover;
+            background-position: top right;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            color: #e7e5e4;
+            display: flex; flex-direction: column; min-height: 100vh; overflow-x: hidden;
+        }
+
+        /* ✅ 手機強制橫向提示遮罩 */
+        #landscape-warning {
+            display: none;
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: #1c1917; color: var(--primary-yellow);
+            z-index: 99999; flex-direction: column; justify-content: center; align-items: center;
+            font-size: 22px; text-align: center; padding: 20px; box-sizing: border-box;
+            font-weight: bold;
+        }
+        #landscape-warning i { font-size: 60px; margin-bottom: 20px; animation: rotatePhone 1.5s infinite ease-in-out; }
+        @keyframes rotatePhone { 0% { transform: rotate(0deg); } 50% { transform: rotate(-90deg); } 100% { transform: rotate(-90deg); } }
+        
+        /* 針對手機裝置 (寬度 < 768px) 且為直向時，顯示提示並遮擋背後內容 */
+        @media screen and (max-width: 767px) and (orientation: portrait) {
+            #landscape-warning { display: flex; }
+        }
+
+        /* ✅ 回饋 Toast */
+        .toast {
+            position: fixed; left: 50%; bottom: 18px;
+            transform: translateX(-50%) translateY(20px);
+            background: rgba(28, 25, 23, 0.9);
+            border: 2px solid var(--stone-border);
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            padding: 12px 16px; border-radius: 8px; /* 偏方正的石塊感 */
+            display: flex; align-items: center; gap: 10px;
+            z-index: 3000; opacity: 0; pointer-events: none;
+            transition: opacity .25s ease, transform .25s ease;
+            max-width: min(680px, calc(100vw - 24px));
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .toast .dot {
+            width: 10px; height: 10px; border-radius: 2px;
+            background: var(--primary-yellow);
+            box-shadow: 0 0 0 4px rgba(217,119,6,0.2); flex: 0 0 auto;
+        }
+        .toast.good .dot { background: #4ecca3; box-shadow: 0 0 0 4px rgba(78,204,163,0.14); }
+        .toast.bad .dot { background: #f43f5e; box-shadow: 0 0 0 4px rgba(244,63,94,0.14); }
+        .toast .msg { font-size: 14px; color: #e5e7eb; line-height: 1.45; word-break: break-word; }
+
+        .pulse-good { animation: pulseGood .45s ease; }
+        .shake-bad { animation: shakeBad .35s ease; }
+        @keyframes pulseGood { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
+        @keyframes shakeBad { 0% { transform: translateX(0); } 25% { transform: translateX(-6px); } 50% { transform: translateX(6px); } 75% { transform: translateX(-4px); } 100% { transform: translateX(0); } }
+
+        /* --- 登入與難度選擇頁 --- */
+        #start-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(28, 25, 23, 0.95); z-index: 1000; display: flex;
+            flex-direction: column; align-items: center; justify-content: center;
+            padding: 18px; box-sizing: border-box;
+        }
+        .start-card {
+            background: #292524; padding: 40px; border-radius: 10px;
+            border: 4px solid var(--stone-border); text-align: center; width: min(550px, 100%);
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8), 0 0 30px rgba(0,0,0,0.5);
+            box-sizing: border-box;
+        }
+        .start-card input {
+            padding: 12px; width: min(420px, 86%); font-size: 18px; border-radius: 4px; 
+            border: 2px solid var(--science-blue); background: #1c1917; color: #fff;
+            margin: 20px 0; text-align: center;
+        }
+        .instruction { font-size: 14px; color: #a8a29e; line-height: 1.6; margin-bottom: 20px; text-align: left; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 5px;}
+        .mode-btns { display: flex; gap: 10px; justify-content: center; margin-top: 20px; flex-wrap: wrap; }
+        .mode-btn { padding: 12px 30px; border-radius: 5px; border: none; cursor: pointer; font-weight: bold; font-size: 18px; transition: 0.3s; text-transform: uppercase; letter-spacing: 2px;}
+        .mode-btn:hover { transform: translateY(-3px); filter: brightness(1.2); }
+
+        /* --- 排行榜 Modal --- */
+        #leaderboard-modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.9); z-index: 2000; align-items: center; justify-content: center;
+            padding: 18px; box-sizing: border-box;
+        }
+        .leaderboard-table {
+            width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 15px;
+        }
+        .leaderboard-table th {
+            background: var(--stone-border); padding: 10px; color: var(--primary-yellow);
+        }
+        .leaderboard-table td {
+            padding: 10px; border-bottom: 1px solid var(--stone-border); text-align: center;
+        }
+        .rank-1 { color: #ffd700; font-weight: bold; background: rgba(255, 215, 0, 0.1); }
+        .rank-2 { color: #e2e2e2; background: rgba(226, 226, 226, 0.05); }
+        .rank-3 { color: #cd7f32; background: rgba(205, 127, 50, 0.05); }
+        .rank-other { color: #a8a29e; }
+
+        /* --- Hero 區 --- */
+        /* ✅ 修改1: 刪除背景漸層與圖片，改為透明 */
+        .hero {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 25px; 
+            background: transparent;
+            border-bottom: 3px solid var(--stone-border);
+            gap: 12px;
+        }
+        .hero-left { display: flex; align-items: center; }
+        .hero-logo {
+            width: 50px; height: 50px;
+            border: 2px solid var(--primary-yellow);
+            border-radius: 8px; margin-right: 12px;
+            display: flex; justify-content: center; align-items: center;
+            overflow: hidden; background: #000; flex: 0 0 auto;
+        }
+        .hero-logo img { width: 85%; height: 85%; object-fit: contain; }
+        .brand-name { font-size: 32px; font-weight: 800; color: #f5f5f4; font-family: 'Arial Black', sans-serif; letter-spacing: 1px;}
+
+        .hero-right { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+        .nav-btn {
+            background: rgba(41, 37, 36, 0.8); color: #e7e5e4; text-decoration: none;
+            padding: 8px 18px; border-radius: 4px; font-size: 16px; font-weight: bold;
+            border: 1px solid var(--stone-border); display: flex; align-items: center; gap: 5px;
+            transition: all 0.3s; white-space: nowrap;
+        }
+        .nav-btn i { color: var(--primary-yellow); }
+        .nav-btn.special { border-color: var(--mech-accent); color: #fff; background: rgba(180, 83, 9, 0.3); }
+        .nav-btn.special i { color: #fff; }
+        .nav-btn:hover { background: #44403c; transform: translateY(-2px); }
+
+        /* --- 遊戲布局 --- */
+        .game-status {
+            display: flex; justify-content: space-around; background: rgba(41, 37, 36, 0.9);
+            padding: 10px; font-size: 18px; border-bottom: 2px solid var(--stone-border);
+            gap: 10px; flex-wrap: wrap; font-weight: bold; color: var(--primary-yellow);
+        }
+
+        .lab-wrapper {
+            display: grid; grid-template-columns: 1fr minmax(280px, 340px);
+            gap: 20px; padding: 20px; flex-grow: 1; overflow: hidden;
+            max-width: 1200px; width: 100%; margin: 0 auto; box-sizing: border-box;
+        }
+
+        .main-lab { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+        .target-display {
+            background: var(--glass); border: 4px solid var(--science-blue);
+            padding: 15px; border-radius: 8px; text-align: center;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.8);
+            transition: transform .25s ease, box-shadow .25s ease;
+            backdrop-filter: blur(5px);
+        }
+        .target-num { font-size: 46px; color: var(--primary-yellow); font-weight: bold; text-shadow: 2px 2px 4px #000; }
+
+        .drop-zone {
+            height: 110px; background: rgba(0,0,0,0.6);
+            border: 3px dashed var(--science-blue); border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            gap: 8px; padding: 10px; overflow-x: auto; scroll-behavior: smooth;
+        }
+
+        .card-shelf {
+            display: flex; flex-wrap: wrap; gap: 8px; padding: 12px;
+            background: rgba(41, 37, 36, 0.9); border: 2px solid var(--stone-border); border-radius: 8px;
+            justify-content: center; min-height: 180px; overflow-y: auto;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+        }
+
+        /* ✅ 強化石塊與機械質感 */
+        .reagent {
+            background: linear-gradient(135deg, #d6d3d1, #a8a29e); 
+            color: #1c1917; padding: 5px;
+            border-radius: 4px; cursor: grab; user-select: none;
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; min-width: 48px; height: 65px;
+            font-weight: bold; box-shadow: 2px 4px 0 #44403c, inset 1px 1px 2px rgba(255,255,255,0.4);
+            border: 2px solid #57534e;
+        }
+        .reagent.operator { 
+            background: linear-gradient(135deg, var(--science-blue), #57534e); 
+            color: white; border-radius: 8px; width: 48px; height: 48px; 
+            box-shadow: 2px 4px 0 #292524, inset 1px 1px 2px rgba(255,255,255,0.2);
+            border: 2px solid #292524;
+        }
+
+        .fraction { display: flex; flex-direction: column; align-items: center; line-height: 1; }
+        .frac-line { border-top: 2px solid #1c1917; width: 100%; margin: 2px 0; }
+
+        .lab-log {
+            background: rgba(41, 37, 36, 0.9); border: 2px solid var(--stone-border);
+            padding: 15px; display: flex; flex-direction: column; overflow: hidden;
+            min-width: 0; border-radius: 8px; box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+        }
+        .log-content {
+            flex-grow: 1; overflow-y: auto; font-size: 13px; color: #a8a29e;
+            font-family: monospace; border: 1px solid var(--stone-border); padding: 10px;
+            background: rgba(28, 25, 23, 0.8); display: flex; flex-direction: column; gap: 5px;
+            border-radius: 4px;
+        }
+        .log-item { padding-bottom: 5px; border-bottom: 1px dashed var(--stone-border); }
+        .current-result { font-size: 24px; color: var(--primary-yellow); text-align: center; padding: 10px; font-weight: bold;}
+
+        .action-btn {
+            background: var(--primary-yellow); border: none; padding: 12px; color: #1c1917;
+            border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 5px;
+            text-transform: uppercase; letter-spacing: 1px;
+            box-shadow: 0 4px 0 #92400e; transition: 0.1s;
+        }
+        .action-btn:active { transform: translateY(4px); box-shadow: 0 0 0 #92400e; }
+
+        /* --- Footer 樣式 --- */
+        footer {
+            padding: 20px; background: rgba(28, 25, 23, 0.9); display: flex; justify-content: center;
+            border-top: 2px solid var(--stone-border);
+        }
+        .footer-pill {
+            background: rgba(41, 37, 36, 0.9); padding: 15px 30px; border-radius: 8px;
+            display: flex; align-items: center; gap: 40px;
+            border: 1px solid var(--stone-border); max-width: 1200px; width: 100%;
+            justify-content: space-between; box-sizing: border-box;
+        }
+        .footer-left, .footer-right { display: flex; align-items: center; gap: 10px; }
+        .footer-dot { width: 8px; height: 8px; background: var(--primary-yellow); transform: rotate(45deg); }
+        .footer-copy { font-size: 14px; color: #a8a29e; }
+        .footer-icon { color: var(--primary-yellow); font-size: 18px; }
+        .footer-tagline { font-size: 14px; color: #d6d3d1; font-weight: 500; }
+
+        @media (max-width: 980px) {
+            .lab-wrapper { grid-template-columns: 1fr minmax(260px, 320px); }
+            .brand-name { font-size: 28px; }
+        }
+        @media (max-width: 768px) {
+            .hero { flex-direction: column; align-items: flex-start; }
+            .hero-right { width: 100%; justify-content: flex-start; }
+            .lab-wrapper { grid-template-columns: 1fr; overflow-y: auto; padding: 14px; }
+            .footer-pill { flex-direction: column; gap: 10px; align-items: flex-start; }
+            .drop-zone { height: 120px; }
+            .target-num { font-size: 40px; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="landscape-warning">
+    <i class="fas fa-mobile-alt"></i>
+    <span>請將手機轉為橫向<br>以獲得最佳遊戲體驗</span>
+</div>
+
+<audio id="bgm" src="1.mp3" loop></audio>
+<audio id="se-correct" src="2.mp3"></audio>
+<audio id="se-win" src="3.mp3"></audio>
+<audio id="se-wrong" src="4.mp3"></audio>
+<audio id="se-fail" src="5.mp3"></audio>
+
+<button id="mute-btn" onclick="toggleMute()" style="position: fixed; bottom: 20px; left: 20px; z-index: 9999; background: rgba(28, 25, 23, 0.9); border: 2px solid var(--stone-border); color: var(--primary-yellow); padding: 10px; border-radius: 50%; width: 50px; height: 50px; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.8);">
+    <i class="fas fa-volume-up" id="mute-icon"></i>
+</button>
+
+<div id="toast" class="toast" aria-live="polite" aria-atomic="true">
+    <div class="dot" aria-hidden="true"></div>
+    <div class="msg" id="toast-msg"></div>
+</div>
+
+<div id="leaderboard-modal">
+    <div class="start-card" style="width: 95%; max-width: 700px; padding: 30px;">
+        <h2 style="color:var(--primary-yellow)"><i class="fas fa-medal"></i> 能源轉換英雄榜</h2>
+        <div style="overflow-x: auto;">
+            <table class="leaderboard-table">
+                <thead>
+                    <tr>
+                        <th>名次</th><th>玩家</th><th>挑戰關卡</th><th>耗時</th><th>分數</th><th>日期</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboard-list"></tbody>
+            </table>
+        </div>
+        <button class="action-btn" style="margin-top:20px;" onclick="closeLeaderboard()">返回迷宮入口</button>
+    </div>
+</div>
+
+<div id="end-screen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(28,25,23,0.95); z-index:1500; flex-direction:column; align-items:center; justify-content:center; padding:18px; box-sizing:border-box;">
+    <div class="start-card" style="display:flex; flex-direction:column; align-items:center; border-color: var(--mech-accent);">
+        <h2 id="end-title" style="color:var(--primary-yellow); font-size:28px; text-shadow: 2px 2px 0px #000; margin-top: 0;"></h2>
+        <div id="end-stats" style="color:#e7e5e4; margin-bottom:20px; font-size:18px; line-height:1.6; background: rgba(0,0,0,0.4); padding: 15px; border-radius: 8px; border: 1px dashed var(--stone-border); width: 100%; box-sizing: border-box;"></div>
+        
+        <div id="badge-container" style="display:none; margin-bottom:20px; text-align: center;">
+            <img src="G6-U10.jpg" alt="通關徽章" style="width:180px; height:180px; object-fit: cover; border:4px solid var(--primary-yellow); border-radius:10px; box-shadow:0 0 20px rgba(217, 119, 6, 0.6);">
+            <div style="color:var(--primary-yellow); font-weight:bold; margin-top:10px; font-size: 18px; letter-spacing: 1px;">獲得徽章：複雜能源轉換</div>
+        </div>
+        
+        <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center; width:100%;">
+            <button id="btn-retry" class="action-btn" style="display:none; background:#f43f5e; color:white; flex: 1 1 180px;" onclick="location.reload()">再挑戰一次</button>
+            <button class="action-btn" style="background:#44403c; color:white; flex: 1 1 180px;" onclick="showLeaderboard()">查看排行榜</button>
+            <button class="action-btn" style="background:var(--mech-accent); color:white; flex: 1 1 180px;" onclick="location.reload()">返回迷宮入口</button>
+        </div>
+    </div>
+</div>
+
+<div id="start-screen">
+    <div class="start-card">
+        <div class="hero-logo" style="margin: 0 auto 15px; border-color:var(--mech-accent); width:80px; height:80px;">
+            <img src="JESSIEMATH-Q.png" alt="Jessie">
+        </div>
+        <h2 style="color:var(--primary-yellow); font-size: 28px; text-shadow: 2px 2px 0px #000;">複雜能源轉換</h2>
+        <div class="instruction">
+            <p style="text-align:center; font-weight:bold; color:var(--primary-yellow); margin-top:0;">【迷宮通關指南】</p>
+            1. <strong>任務目標：</strong>共有 10 道能源門，調配算式達成「目標數值」即可解鎖。<br>
+            2. <strong>過關條件：</strong>10 題內必須成功解開至少 <span style="color:#4ecca3; font-weight:bold;">7 題</span> 才能逃出迷宮！<br>
+            3. <strong>限時挑戰：</strong>限時 5 分鐘，時間內未完成視同失敗。<br>
+            4. <strong>資源無限：</strong>石塊上的數字與齒輪符號皆可重複拖拉使用。
+        </div>
+        <input type="text" id="player-name" placeholder="請輸入闖關者姓名">
+        <div class="mode-btns">
+            <button class="mode-btn" style="background:var(--mech-accent); color:white; width: 100%;" onclick="startGame()">進入迷宮</button>
+        </div>
+        <button class="action-btn" style="background: #44403c; color: white; margin-top: 15px;" onclick="showLeaderboard()">
+            <i class="fas fa-list-ol"></i> 查看排行榜
+        </button>
+    </div>
+</div>
+
+<div class="hero">
+    <div class="hero-left">
+        <div class="hero-logo"><img src="JESSIEMATH-Q.png" alt="Jessie Logo"></div>
+        <div class="brand-name">Jessie Math捷析</div>
+    </div>
+    <div class="hero-right">
+        <a href="https://jessiemath0703-chu.github.io/website2/" class="nav-btn"><i class="fas fa-home"></i> 首頁</a>
+        <a href="https://jessiemath0703-chu.github.io/Game-Lobby/" class="nav-btn"><i class="fas fa-gamepad"></i> 遊戲大廳</a>
+        <a href="https://jessiemath0703-chu.github.io/Game-Lobby/#g6-10" class="nav-btn special"><i class="fas fa-undo"></i> G6分數與小數的四則運算</a>
+    </div>
+</div>
+
+<div class="game-status">
+    <div>👤 闖關者：<span id="display-name">---</span></div>
+    <div>📍 關卡進度：<span id="q-counter">0/10</span></div>
+    <div>🕒 倒數：<span id="timer">05:00</span></div>
+    <div>⚡ 能源分：<span id="score">0</span></div>
+</div>
+
+<div class="lab-wrapper">
+    <div class="main-lab">
+        <div class="target-display" id="target-box">
+            <div style="color:#a8a29e;">⚙️ 能源門解鎖數值</div>
+            <div class="target-num" id="target-val">---</div>
+        </div>
+
+        <div class="drop-zone" id="drop-zone" ondrop="dropToZone(event)" ondragover="allowDrop(event)">
+            <div id="hint-text" style="color:#a8a29e;">拖入石塊與齒輪開始調配...</div>
+        </div>
+
+        <div class="card-shelf" id="shelf" ondrop="dropToShelf(event)" ondragover="allowDrop(event)"></div>
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button id="pause-btn" class="action-btn" style="background:#57534e; color:white; flex:1 1 160px;" onclick="togglePause()">暫停機制</button>
+            <button class="action-btn" style="background:#f43f5e; color:white; flex:1 1 160px;" onclick="resetCurrent()">清除重置</button>
+            <button class="action-btn" style="background:#4ecca3; flex:1 1 160px;" onclick="checkAnswer()">啟動轉換</button>
+        </div>
+    </div>
+
+    <div class="lab-log" id="log-box">
+        <h3 style="margin-top:0; color:var(--primary-yellow);">📜 終端機紀錄</h3>
+        <div class="log-content" id="log-content"></div>
+        <div class="current-result">當前輸出: <span id="calc-res">0</span></div>
+    </div>
+</div>
+
+<footer>
+    <div class="footer-pill">
+        <div class="footer-left">
+            <div class="footer-dot" aria-hidden="true"></div>
+            <div class="footer-copy">© 2025–2026 Jessie Math 捷析老師. All rights reserved.</div>
+        </div>
+        <div class="footer-right">
+            <div class="footer-icon" aria-hidden="true"><i class="fas fa-compass"></i></div>
+            <div class="footer-tagline">數學不迷路，捷析Jessie帶你走向理解。</div>
+        </div>
+    </div>
+</footer>
+
+<script>
+    let currentFormula = [];
+    let score = 0;
+    
+    // 遊戲進度變數
+    const TOTAL_TIME = 300; // 5分鐘
+    const MAX_QUESTIONS = 10;
+    const WIN_THRESHOLD = 7;
+    let timeLeft = 0;
+    let timerInterval;
+    let isPaused = false;
+    let playerName = "";
+    let questionCount = 0;
+    let correctCount = 0;
+
+    let currentSolution = { target: null, pretty: "", evalExpr: "" };
+
+    const numPool = [
+        { val: 0.5, d: '0.5' }, { val: 0.25, d: {n:1, d:4} }, { val: 0.75, d: {n:3, d:4} },
+        { val: 0.2, d: {n:1, d:5} }, { val: 0.4, d: '0.4' }, { val: 0.6, d: {n:3, d:5} },
+        { val: 0.8, d: '0.8' }, { val: 0.1, d: '0.1' }, { val: 0.125, d: {n:1, d:8} },
+        { val: 1.5, d: '1.5' }, { val: 2, d: '2' }, { val: 1.25, d: '1.25' },
+        { val: 0.3, d: '0.3' }, { val: 0.375, d: {n:3, d:8} }, { val: 0.9, d: '0.9' },
+        { val: 2.5, d: '2.5' }, { val: 0.625, d: {n:5, d:8} }, { val: 1.2, d: '1.2' },
+        { val: 0.7, d: '0.7' }, { val: 0.875, d: {n:7, d:8} }, { val: 0.8, d: {n:4, d:5} },
+        { val: 1.8, d: '1.8' }, { val: 3, d: '3' }, { val: 0.05, d: '0.05' },
+        { val: 0.15, d: '0.15' }, { val: 0.45, d: '0.45' }, { val: 0.25, d: '0.25' },
+        { val: 1.75, d: {n:7, d:4} }, { val: 4, d: '4' }, { val: 1.4, d: '1.4' }
+    ];
+
+    const opPool = [
+        { type: 'op', val: '+', d: '+' }, { type: 'op', val: '-', d: '-' },
+        { type: 'op', val: '*', d: '×' }, { type: 'op', val: '/', d: '÷' },
+        { type: 'op', val: '(', d: '(' }, { type: 'op', val: ')' , d: ')' }
+    ];
+
+    // ✅ 修改3: 新增音效靜音控制機制
+    function toggleMute() {
+        const audios = document.querySelectorAll('audio');
+        const icon = document.getElementById('mute-icon');
+        let isMuted = audios[0].muted;
+        
+        audios.forEach(a => a.muted = !isMuted);
+        
+        if (!isMuted) {
+            icon.className = 'fas fa-volume-mute';
+            showToast("🔇 音效已關閉", "good");
+        } else {
+            icon.className = 'fas fa-volume-up';
+            showToast("🔊 音效已開啟", "good");
+        }
+    }
+
+    function showToast(message, type = "good") {
+        const toast = document.getElementById('toast');
+        const msg = document.getElementById('toast-msg');
+        msg.innerHTML = message;
+        toast.classList.remove('good', 'bad', 'show');
+        toast.classList.add(type === "bad" ? 'bad' : 'good');
+        void toast.offsetWidth;
+        toast.classList.add('show');
+        clearTimeout(showToast._t);
+        showToast._t = setTimeout(() => toast.classList.remove('show'), 3000); // 延長顯示時間
+    }
+
+    function startGame() {
+        playerName = document.getElementById('player-name').value;
+        if(!playerName) return alert("請輸入闖關者姓名！");
+        
+        document.getElementById('bgm').play().catch(e => console.log("等待互動以播放音樂"));
+
+        timeLeft = TOTAL_TIME;
+        score = 0;
+        questionCount = 0;
+        correctCount = 0;
+        
+        // ✅ 修改4: 遊戲開始時，重置暫停狀態與按鈕樣式
+        isPaused = false;
+        const pBtn = document.getElementById('pause-btn');
+        if(pBtn) { pBtn.innerText = "暫停機制"; pBtn.style.background = "#57534e"; }
+
+        document.getElementById('display-name').innerText = playerName;
+        document.getElementById('score').innerText = score;
+        updateProgressUI();
+        
+        document.getElementById('start-screen').style.display = 'none';
+        initGame(true);
+        showToast(`⚙️ ${playerName}，已進入迷宮！請解開第一道能源門。`, "good");
+    }
+
+    function updateProgressUI() {
+        document.getElementById('q-counter').innerText = `${questionCount + 1}/${MAX_QUESTIONS}`;
+    }
+
+    function initGame(isFirstStart = false) {
+        resetCurrent(true); // 傳入 true 略過暫停阻擋
+        const logContent = document.getElementById('log-content');
+        logContent.innerHTML = `<div class="log-item">> ${isFirstStart ? '系統初始化...' : '載入下一道能源門...'}</div>`;
+
+        const shelfNums = [...numPool].sort(() => Math.random() - 0.5).slice(0, 12);
+        const combined = [...shelfNums, ...opPool].sort(() => Math.random() - 0.5);
+        renderShelf(combined);
+
+        generateNewTargetWithSolution(shelfNums);
+
+        if(isFirstStart) {
+            if(timerInterval) clearInterval(timerInterval);
+            startTimer();
+        }
+    }
+
+    function dispToText(d) { return (typeof d === 'object') ? `${d.n}/${d.d}` : String(d); }
+    function approxEqual(a, b, eps = 1e-6) { return Number.isFinite(a) && Number.isFinite(b) && Math.abs(a - b) <= eps; }
+    function safeDiv(a, b) { return Math.abs(b) < 1e-12 ? null : (a / b); }
+
+    function findSolutionForTarget(numObjs, target) {
+        const ops = [
+            {sym:"+", fn:(a,b)=>a+b}, {sym:"-", fn:(a,b)=>a-b},
+            {sym:"*", fn:(a,b)=>a*b}, {sym:"/", fn:(a,b)=>safeDiv(a,b)}
+        ];
+        for (let i=0;i<numObjs.length;i++){
+            for (let j=0;j<numObjs.length;j++){
+                if (i===j) continue;
+                const A = numObjs[i], B = numObjs[j];
+                for (const op of ops){
+                    const r = op.fn(A.val, B.val);
+                    if (r === null) continue;
+                    if (approxEqual(r, target)) {
+                        return { pretty: `${A.txt} ${op.sym==="*"?"×":op.sym==="/"?"÷":op.sym} ${B.txt}`, evalExpr: `(${A.val}${op.sym}${B.val})` };
+                    }
+                }
+            }
+        }
+        for (let i=0;i<numObjs.length;i++){
+            for (let j=0;j<numObjs.length;j++){
+                for (let k=0;k<numObjs.length;k++){
+                    if (i===j || j===k || i===k) continue;
+                    const A = numObjs[i], B = numObjs[j], C = numObjs[k];
+                    for (const op1 of ops){
+                        const r1 = op1.fn(A.val, B.val);
+                        if (r1 === null) continue;
+                        for (const op2 of ops){
+                            const r2 = op2.fn(r1, C.val);
+                            if (r2 !== null && approxEqual(r2, target)) {
+                                const p1 = `${A.txt} ${op1.sym==="*"?"×":op1.sym==="/"?"÷":op1.sym} ${B.txt}`;
+                                return { pretty: `(${p1}) ${op2.sym==="*"?"×":op2.sym==="/"?"÷":op2.sym} ${C.txt}`, evalExpr: `((${A.val}${op1.sym}${B.val})${op2.sym}${C.val})` };
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    function generateNewTargetWithSolution(shelfNums) {
+        const numObjs = shelfNums.map(n => ({ val: n.val, txt: dispToText(n.d) }));
+        const possibleTargets = [
+            1, 2, 0.5, 1.25, 1.5, 0.75, 2.25, 0.4, 0.8, 0.1, 1.1, 0.6, 2.5,
+            0.2, 0.3, 0.9, 1.4, 1.8, 3, 0.25, 0.125, 1.6, 2.4, 3.5, 4, 1.75
+        ];
+        const currentVals = new Set(shelfNums.map(c => c.val));
+        const filtered = possibleTargets.filter(t => !currentVals.has(t));
+
+        let picked = null;
+        for (let tries = 0; tries < 60; tries++) {
+            const t = filtered[Math.floor(Math.random() * filtered.length)] ?? 1.1;
+            const sol = findSolutionForTarget(numObjs, t);
+            if (sol) { picked = { t, sol }; break; }
+        }
+
+        if (!picked) {
+            picked = { t: 1.1, sol:{pretty:"0.5 + 0.6", evalExpr:"(0.5+0.6)"} };
+        }
+
+        currentSolution.target = picked.t;
+        currentSolution.pretty = picked.sol.pretty;
+        currentSolution.evalExpr = picked.sol.evalExpr;
+        document.getElementById('target-val').innerText = picked.t;
+    }
+
+    function renderShelf(data) {
+        const shelf = document.getElementById('shelf');
+        shelf.innerHTML = '';
+        data.forEach((r, i) => { shelf.appendChild(createReagentEl(r, `shelf-${i}-${Date.now()}`)); });
+    }
+
+    function createReagentEl(r, id) {
+        const div = document.createElement('div');
+        div.className = r.type === 'op' ? 'reagent operator' : 'reagent';
+        div.draggable = true; div.id = id;
+        div.innerHTML = formatDisplay(r.d);
+        div.setAttribute('data-info', JSON.stringify({val: r.val, d: r.d, type: r.type}));
+        div.ondragstart = (e) => {
+            if(isPaused) return e.preventDefault();
+            e.dataTransfer.setData("info", e.target.getAttribute('data-info'));
+            e.dataTransfer.setData("sourceId", e.target.id);
+        };
+        div.onclick = () => { if(div.parentElement.id === 'drop-zone') removeReagent(div.id); };
+        return div;
+    }
+
+    function formatDisplay(disp) {
+        return typeof disp === 'object' ? `<div class="fraction"><div>${disp.n}</div><div class="frac-line"></div><div>${disp.d}</div></div>` : disp;
+    }
+
+    function allowDrop(e) { e.preventDefault(); }
+
+    function getDragAfterElement(container, x) {
+        const draggableElements = [...container.querySelectorAll('.reagent')];
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = x - box.left - box.width / 2;
+            if (offset < 0 && offset > closest.offset) {
+                return { offset: offset, element: child };
+            } else {
+                return closest;
+            }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+
+    function dropToZone(e) {
+        e.preventDefault();
+        try {
+            const dataStr = e.dataTransfer.getData("info");
+            const sid = e.dataTransfer.getData("sourceId");
+            if(!dataStr) return;
+            const info = JSON.parse(dataStr);
+            document.getElementById('hint-text').style.display = 'none';
+            
+            const dropZone = document.getElementById('drop-zone');
+            
+            let clientX = e.clientX || 0;
+            if (e.changedTouches && e.changedTouches.length > 0) {
+                clientX = e.changedTouches[0].clientX;
+            }
+            const afterElement = getDragAfterElement(dropZone, clientX);
+
+            if (sid && sid.startsWith('zone')) {
+                const oldEl = document.getElementById(sid);
+                if (oldEl) oldEl.remove();
+                currentFormula = currentFormula.filter(i => i.id !== sid);
+            }
+
+            const newId = 'zone-' + Date.now() + Math.random();
+            const el = createReagentEl(info, newId);
+
+            let insertIndex = currentFormula.length;
+            if (afterElement == null) {
+                dropZone.appendChild(el);
+            } else {
+                dropZone.insertBefore(el, afterElement);
+                insertIndex = currentFormula.findIndex(item => item.id === afterElement.id);
+            }
+
+            if (insertIndex === -1) insertIndex = currentFormula.length;
+            currentFormula.splice(insertIndex, 0, {id: newId, val: info.val, d: info.d});
+
+            addLog(`放入 [${typeof info.d === 'object' ? info.d.n+'/'+info.d.d : info.d}]`);
+            calculate();
+        } catch(err) {
+            console.error("拖放處理錯誤", err);
+        }
+    }
+
+    function removeReagent(id) {
+        if(isPaused) return; // ✅ 修改4: 暫停時不能移除
+        const item = currentFormula.find(i => i.id === id);
+        if(item) addLog(`移出 [${typeof item.d === 'object' ? item.d.n+'/'+item.d.d : item.d}]`);
+        const el = document.getElementById(id);
+        if(el) el.remove();
+        currentFormula = currentFormula.filter(i => i.id !== id);
+        if(currentFormula.length === 0) document.getElementById('hint-text').style.display = 'block';
+        calculate();
+    }
+
+    function dropToShelf(e) {
+        e.preventDefault();
+        const sid = e.dataTransfer.getData("sourceId");
+        if(sid && sid.startsWith('zone')) removeReagent(sid);
+    }
+
+    function addLog(msg) {
+        const log = document.getElementById('log-content');
+        const now = new Date();
+        const timeStr = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+        const div = document.createElement('div'); div.className = 'log-item';
+        const formulaStr = currentFormula.map(i => typeof i.d === 'object' ? i.d.n+'/'+i.d.d : i.d).join('');
+        
+        if (msg.includes('💡 正解參考')) {
+            div.innerHTML = `[${timeStr}] <span style="color:#4ecca3; font-weight:bold;">${msg}</span>`;
+        } else {
+            div.innerText = `[${timeStr}] ${msg} | 當前算式: ${formulaStr || '---'}`;
+        }
+        log.appendChild(div); log.scrollTop = log.scrollHeight;
+    }
+
+    function calculate() {
+        try {
+            let str = currentFormula.map(i => i.val).join('');
+            if(!str) {
+                document.getElementById('calc-res').innerText = "0";
+                return 0;
+            }
+            let res = eval(str);
+            document.getElementById('calc-res').innerText = Number.isFinite(res) ? parseFloat(res.toFixed(3)) : "---";
+            return res;
+        } catch(e) { 
+            document.getElementById('calc-res').innerText = "---"; 
+            return undefined;
+        }
+    }
+
+    function startTimer() {
+        timerInterval = setInterval(() => {
+            if(!isPaused) {
+                timeLeft--;
+                let m = Math.floor(timeLeft / 60).toString().padStart(2,'0');
+                let s = (timeLeft % 60).toString().padStart(2,'0');
+                document.getElementById('timer').innerText = `${m}:${s}`;
+                if(timeLeft <= 0) {
+                    processGameOver(false); 
+                }
+            }
+        }, 1000);
+    }
+
+    // ✅ 修改4: 完善暫停按鈕的邏輯防護與介面狀態切換
+    function togglePause() {
+        isPaused = !isPaused;
+        const btn = document.getElementById('pause-btn');
+        if (isPaused) {
+            btn.innerText = "▶ 恢復運行";
+            btn.style.background = "#0284c7"; // 變成藍色按鈕提示可恢復
+        } else {
+            btn.innerText = "暫停機制";
+            btn.style.background = "#57534e"; // 變回原色
+        }
+        showToast(isPaused ? "⏸️ 系統暫停" : "▶️ 恢復運行", "good");
+    }
+
+    function resetCurrent(force = false) {
+        if (isPaused && !force) return showToast("⏸️ 系統暫停中，請先恢復運行", "bad"); // ✅ 修改4: 暫停防護
+        document.getElementById('drop-zone').innerHTML = '<div id="hint-text" style="color:#a8a29e;">拖入石塊與齒輪開始調配...</div>';
+        currentFormula = []; calculate();
+    }
+
+    function checkAnswer() {
+        if (isPaused) return showToast("⏸️ 系統暫停中，請先恢復運行", "bad"); // ✅ 修改4: 暫停防護
+
+        let res = calculate();
+        let target = parseFloat(document.getElementById('target-val').innerText);
+        const targetBox = document.getElementById('target-box');
+        const logBox = document.getElementById('log-box');
+
+        questionCount++; 
+
+        if (Number.isFinite(res) && Math.abs(res - target) < 0.001) {
+            document.getElementById('se-correct').play().catch(e=>{});
+
+            correctCount++;
+            score += 100;
+            document.getElementById('score').innerText = score;
+
+            addLog("✅ 能源轉換成功");
+            showToast(`✨ 解鎖成功！目前已解開 ${correctCount} 門`, "good");
+
+            targetBox.classList.remove('shake-bad');
+            targetBox.classList.add('pulse-good');
+            setTimeout(() => targetBox.classList.remove('pulse-good'), 520);
+        } else {
+            document.getElementById('se-wrong').play().catch(e=>{});
+
+            const correctText = currentSolution.pretty ? currentSolution.pretty : target;
+            addLog("❌ 轉換失敗：能源逸散");
+            addLog(`💡 正解參考：${correctText}`);
+            showToast(`❌ 數值錯誤！<br><span style="opacity:.9; font-size:13px; color:#ffd700;">（正解參考：${correctText}）</span>`, "bad");
+
+            logBox.classList.remove('pulse-good');
+            logBox.classList.add('shake-bad');
+            setTimeout(() => logBox.classList.remove('shake-bad'), 420);
+        }
+
+        if (questionCount >= MAX_QUESTIONS) {
+            setTimeout(() => processGameOver(true), 1200); 
+        } else {
+            updateProgressUI();
+            setTimeout(() => initGame(false), 1200);
+        }
+    }
+
+    function processGameOver(finishedAll) {
+        clearInterval(timerInterval);
+        
+        let bgm = document.getElementById('bgm');
+        if (bgm) { bgm.pause(); bgm.currentTime = 0; }
+
+        let timeUsed = TOTAL_TIME - timeLeft;
+        let m = Math.floor(timeUsed / 60);
+        let s = (timeUsed % 60).toString().padStart(2,'0');
+        let timeStr = `${m}分${s}秒`;
+        
+        let isWin = correctCount >= WIN_THRESHOLD;
+        let title = isWin ? "🎉 闖關成功，成功逃出迷宮！" : "💀 闖關失敗，受困於迷宮...";
+        
+        if (isWin) {
+            document.getElementById('se-win').play().catch(e=>{});
+        } else {
+            document.getElementById('se-fail').play().catch(e=>{});
+        }
+
+        saveScore(playerName, score, timeStr, "複雜能源轉換");
+        
+        setTimeout(() => {
+            const endScreen = document.getElementById('end-screen');
+            document.getElementById('end-title').innerText = title;
+            document.getElementById('end-stats').innerHTML = `
+                📌 答對題數：<span style="color:var(--primary-yellow); font-weight:bold;">${correctCount} / ${MAX_QUESTIONS}</span><br>
+                ⚡ 獲得總分：<span style="color:var(--primary-yellow); font-weight:bold;">${score}</span><br>
+                🕒 挑戰耗時：<span style="color:var(--primary-yellow); font-weight:bold;">${timeStr}</span>
+            `;
+            
+            if (isWin) {
+                document.getElementById('badge-container').style.display = 'block';
+                document.getElementById('btn-retry').style.display = 'none';
+            } else {
+                document.getElementById('badge-container').style.display = 'none';
+                document.getElementById('btn-retry').style.display = 'block';
+            }
+            
+            endScreen.style.display = 'flex';
+        }, 500);
+    }
+
+    function saveScore(name, finalScore, timeStr, stageName) {
+        let scores = JSON.parse(localStorage.getItem('jessieMath_maze_scores') || '[]');
+        scores.push({ 
+            name: name, 
+            score: finalScore, 
+            time: timeStr, 
+            stage: stageName,
+            date: new Date().toLocaleDateString() 
+        });
+        
+        scores.sort((a, b) => b.score - a.score);
+        scores = scores.slice(0, 10);
+        localStorage.setItem('jessieMath_maze_scores', JSON.stringify(scores));
+    }
+
+    function showLeaderboard() {
+        const modal = document.getElementById('leaderboard-modal');
+        const list = document.getElementById('leaderboard-list');
+        const scores = JSON.parse(localStorage.getItem('jessieMath_maze_scores') || '[]');
+        modal.style.display = 'flex';
+
+        if (scores.length === 0) {
+            list.innerHTML = "<tr><td colspan='6' style='color:#a8a29e;'>迷宮深處尚無探險紀錄</td></tr>";
+            return;
+        }
+
+        const getRankIcon = (index) => {
+            if (index === 0) return '🥇 第 1 名';
+            if (index === 1) return '🥈 第 2 名';
+            if (index === 2) return '🥉 第 3 名';
+            return `🏅 第 ${index + 1} 名`;
+        };
+        
+        const getRankClass = (index) => {
+            if (index === 0) return 'rank-1';
+            if (index === 1) return 'rank-2';
+            if (index === 2) return 'rank-3';
+            return 'rank-other';
+        };
+
+        list.innerHTML = scores.map((s, i) => `
+            <tr class="${getRankClass(i)}">
+                <td>${getRankIcon(i)}</td>
+                <td>${s.name}</td>
+                <td>${s.stage}</td>
+                <td>${s.time}</td>
+                <td>${s.score}</td>
+                <td>${s.date}</td>
+            </tr>
+        `).join('');
+    }
+
+    function closeLeaderboard() {
+        document.getElementById('leaderboard-modal').style.display = 'none';
+    }
+</script>
+
+</body>
+</html>
